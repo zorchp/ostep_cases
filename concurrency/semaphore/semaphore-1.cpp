@@ -1,7 +1,13 @@
-#include <semaphore.h>
 #include <pthread.h>
 #include <cstdio>
 #include <unistd.h>
+
+#ifdef __APPLE__
+#include "zemaphore.h"
+#elif linux
+#include <semaphore.h>
+#endif
+
 namespace sem_as_lock {
 sem_t s;
 int cnt = 0;
@@ -17,7 +23,7 @@ void *f(void *) {
 
 void t1() {
     using namespace sem_as_lock;
-    sem_init(&s, 0, 1);
+    sem_init(&s, 1);
     pthread_t tid1, tid2;
     pthread_create(&tid1, NULL, f, NULL);
     pthread_create(&tid2, NULL, f, NULL);
@@ -39,7 +45,7 @@ void *child(void *arg) {
 
 void t2() {
     using namespace sem_as_cond_variable;
-    sem_init(&s, 0, 0);
+    sem_init(&s, 0);
     printf("parent: begin\n");
     pthread_t tid;
     pthread_create(&tid, NULL, child, NULL);
@@ -52,7 +58,7 @@ void t2() {
 }
 
 int main(int argc, char *argv[]) {
-    t1();
-    // t2();
+    // t1();
+    t2();
     return 0;
 }
