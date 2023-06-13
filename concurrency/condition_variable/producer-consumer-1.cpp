@@ -86,9 +86,9 @@ int get() {
     --cnt;
     return tmp;
 }
-pthread_cond_t empty;
-pthread_cond_t full;
-pthread_mutex_t mutex;
+pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
+pthread_cond_t full = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *producer(void *arg) {
     int loops = LOOP_NUMS;
@@ -101,16 +101,25 @@ void *producer(void *arg) {
         pthread_cond_signal(&full);
         pthread_mutex_unlock(&mutex);
     }
+    for (int i = 0; i < 2; ++i) { // 消费者数量
+        pthread_mutex_lock(&mutex);
+        while (cnt == MAX) // 满了, 等待变空
+            pthread_cond_wait(&empty, &mutex);
+        put(-1);
+        printf("%d put \n", i);
+        pthread_cond_signal(&full);
+        pthread_mutex_unlock(&mutex);
+    }
     return NULL;
 }
 
 void *consumer(void *arg) {
-    int loops = LOOP_NUMS;
-    for (int i = 0; i < loops; ++i) {
+    int tmp = 0;
+    while (tmp != -1) {
         pthread_mutex_lock(&mutex);
         while (cnt == 0) // 空了, 等待变满
             pthread_cond_wait(&full, &mutex);
-        int tmp = get();
+        tmp = get();
         usleep(30000);
         printf("%d gotten \n", tmp);
         pthread_cond_signal(&empty);
@@ -126,10 +135,10 @@ void t2() {
     pthread_t tid1, tid2, tid3;
     pthread_create(&tid1, NULL, producer, NULL);
     pthread_create(&tid2, NULL, consumer, NULL);
-    // pthread_create(&tid3, NULL, consumer, NULL);
+    pthread_create(&tid3, NULL, consumer, NULL);
     pthread_join(tid1, NULL);
     pthread_join(tid2, NULL);
-    // pthread_join(tid3, NULL);
+    pthread_join(tid3, NULL);
     // 1生产者2 消费者还是会忙等
 }
 

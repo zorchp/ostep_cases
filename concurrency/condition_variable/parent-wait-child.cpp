@@ -30,6 +30,7 @@ namespace cond_variable {
 // pthread_cond_wait(pthread_cond_t *c, pthread_mutex_t *m);
 // pthread_cond_signal(pthread_cond_t *c);
 int done = 0;
+// static init
 pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t c = PTHREAD_COND_INITIALIZER;
 

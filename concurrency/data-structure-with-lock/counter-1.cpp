@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <pthread.h>
-#include <unistd.h> // get_nprocs
+
 namespace not_safe {
 typedef struct counter_t {
     int val;
@@ -91,24 +91,13 @@ void* f(void*) {
 }
 void t1() {
     init(&cnt, 1000);
-    pthread_t tid1, tid2, tid3, tid4, tid5, tid6, tid7, tid8;
-    pthread_create(&tid1, NULL, f, NULL);
-    pthread_create(&tid2, NULL, f, NULL);
-    pthread_create(&tid3, NULL, f, NULL);
-    pthread_create(&tid4, NULL, f, NULL);
-    pthread_create(&tid5, NULL, f, NULL);
-    pthread_create(&tid6, NULL, f, NULL);
-    pthread_create(&tid7, NULL, f, NULL);
-    pthread_create(&tid8, NULL, f, NULL);
-    pthread_join(tid1, NULL);
-    pthread_join(tid2, NULL);
-    pthread_join(tid3, NULL);
-    pthread_join(tid4, NULL);
-    pthread_join(tid5, NULL);
-    pthread_join(tid6, NULL);
-    pthread_join(tid7, NULL);
-    pthread_join(tid8, NULL);
+    pthread_t tids[NUMCPUS];
+    for (int i = 0; i < NUMCPUS; ++i) {
+        pthread_create(&tids[i], NULL, f, NULL);
+        pthread_join(tids[i], NULL);
+    }
     printf("%d\n", get(&cnt));
+    // 80000000
 }
 
 int main(int argc, char* argv[]) {

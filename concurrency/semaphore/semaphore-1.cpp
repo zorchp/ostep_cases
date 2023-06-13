@@ -4,7 +4,7 @@
 
 #ifdef __APPLE__
 #include "zemaphore.h"
-#elif linux
+#elif __linux__
 #include <semaphore.h>
 #endif
 
@@ -23,14 +23,14 @@ void *f(void *) {
 
 void t1() {
     using namespace sem_as_lock;
-    sem_init(&s, 1);
+    sem_init(&s, 0, 1);
     pthread_t tid1, tid2;
     pthread_create(&tid1, NULL, f, NULL);
     pthread_create(&tid2, NULL, f, NULL);
     pthread_join(tid1, NULL);
     pthread_join(tid2, NULL);
-    // sleep(1);
     printf("cnt=%d\n", cnt);
+    // cnt=2000000
 }
 
 namespace sem_as_cond_variable {
@@ -45,13 +45,12 @@ void *child(void *arg) {
 
 void t2() {
     using namespace sem_as_cond_variable;
-    sem_init(&s, 0);
+    sem_init(&s, 0, 0);
     printf("parent: begin\n");
     pthread_t tid;
     pthread_create(&tid, NULL, child, NULL);
     sem_wait(&s);
     printf("parent: end\n");
-    // test in ubuntu: x86
     // parent: begin
     // child
     // parent: end

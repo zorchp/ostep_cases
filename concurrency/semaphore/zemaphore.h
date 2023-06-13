@@ -10,33 +10,36 @@ typedef struct __Zem_t {
 
 void Zem_init(Zem_t *z, int value) {
     z->value = value;
-    z->cond = PTHREAD_COND_INITIALIZER;
-    z->lock = PTHREAD_MUTEX_INITIALIZER;
-    // Cond_init(&z->cond);
-    // Mutex_init(&z->lock);
+    pthread_cond_init(&z->cond, NULL);
+    pthread_mutex_init(&z->lock, NULL);
 }
 
 void Zem_wait(Zem_t *z) {
+    // 如果 val >= 1, 立即返回
+    // 否则线程挂起, 直到之后的 post 操作
+    // 如果信号量值为负数, 这个值(绝对值)就是等待线程的个数
     pthread_mutex_lock(&z->lock);
     while (z->value <= 0) //
         pthread_cond_wait(&z->cond, &z->lock);
-    z->value--;
+    --z->value;
     pthread_mutex_unlock(&z->lock);
 }
 
 void Zem_post(Zem_t *z) {
+    // 并不等待某些条件满足, 仅增加信号量的值, 如果有等待线程, 唤醒其中一个
     pthread_mutex_lock(&z->lock);
-    z->value++;
-    pthread_cond_signal(&z->cond);
+    ++z->value;
+    pthread_cond_signal(&z->cond); // 唤醒
     pthread_mutex_unlock(&z->lock);
 }
 
-#ifdef __APPLE__
+#ifdef __APPLE__ // just for APPLE
 typedef Zem_t sem_t;
 
 #define sem_wait(s) Zem_wait(s)
 #define sem_post(s) Zem_post(s)
-#define sem_init(s, v) Zem_init(s, v)
+// placeholder for API compatibliity
+#define sem_init(s, placeholder, v) Zem_init(s, v)
 #endif
 
 #endif // __zemaphore_h__

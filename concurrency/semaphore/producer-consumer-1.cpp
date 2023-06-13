@@ -4,7 +4,7 @@
 
 #ifdef __APPLE__
 #include "zemaphore.h"
-#elif linux
+#elif __linux__
 #include <semaphore.h>
 #endif
 namespace version1 {
