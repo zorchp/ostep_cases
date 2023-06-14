@@ -17,7 +17,6 @@ void Zem_init(Zem_t *z, int value) {
 void Zem_wait(Zem_t *z) {
     // 如果 val >= 1, 立即返回
     // 否则线程挂起, 直到之后的 post 操作
-    // 如果信号量值为负数, 这个值(绝对值)就是等待线程的个数
     pthread_mutex_lock(&z->lock);
     while (z->value <= 0) //
         pthread_cond_wait(&z->cond, &z->lock);
