@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
     int NUMS = 5; // 至少三个线程
     pthread_t tids[NUMS];
     for (int i = 0; i < NUMS; ++i) {
-        pthread_create(&tids[i], NULL, fish_thread, (void*)&i);
+        pthread_create(&tids[i], NULL, fish_thread, NULL);
     }
     for (int i = 0; i < NUMS; ++i) {
         pthread_join(tids[i], NULL);
