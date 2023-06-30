@@ -20,7 +20,7 @@ void put(int val) {
 
 int get() {
     int tmp = buf[use];
-    use = (use + 11) % MAX;
+    use = (use + 1) % MAX;
     return tmp;
 }
 

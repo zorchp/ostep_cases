@@ -1,6 +1,5 @@
 #include <condition_variable>
 #include <mutex>
-#include <pthread.h>
 #include <tuple>
 #include <vector>
 #include <functional>
@@ -22,14 +21,15 @@ class H2O {
         enum Items { from = 0, ch, to };
         for (int i = 0; i < rules.size(); ++i) {
             auto rule = rules[i];
-            if (get<from>(rule) == cur && get<ch>(rule) == c) {
+            if (get<from>(rule) == cur && get<ch>(rule) == c)
                 return get<to>(rule);
-            }
         }
         return 0;
     }
 
-    int can_print(char ch) { return next(ch) != 0 && quota > 0; }
+    int can_print(char ch) {
+        return next(ch) != 0 && quota > 0;
+    }
 
     void H2O_before(char ch) {
         std::unique_lock<std::mutex> lk(mtx);
@@ -50,7 +50,8 @@ class H2O {
     std::condition_variable cv;
 
 public:
-    H2O() : cur(A), quota(1) {}
+    H2O() : cur(A), quota(1) {
+    }
 
     void hydrogen(function<void()> releaseHydrogen) {
         H2O_before('H');
