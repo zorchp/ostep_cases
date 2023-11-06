@@ -23,8 +23,7 @@ pthread_cond_t full;
 pthread_mutex_t mutex;
 
 void *producer(void *arg) {
-    int loops = LOOP_NUMS;
-    for (int i = 0; i < loops; ++i) {
+    for (int i = 0; i < LOOP_NUMS; ++i) {
         pthread_mutex_lock(&mutex);
         while (cnt == 1) // 满了, 等待变空
             pthread_cond_wait(&empty, &mutex);
@@ -37,8 +36,7 @@ void *producer(void *arg) {
 }
 
 void *consumer(void *arg) {
-    int loops = LOOP_NUMS;
-    for (int i = 0; i < loops; ++i) {
+    for (int i = 0; i < LOOP_NUMS; ++i) {
         pthread_mutex_lock(&mutex);
         while (cnt == 0) // 空了, 等待变满
             pthread_cond_wait(&full, &mutex);
@@ -67,22 +65,26 @@ void t1() {
 
 namespace version_final {
 //
-const int MAX = 5;
-const int LOOP_NUMS = 10;
-int buf[MAX];
+const int producer_num = 1;
+const int consumer_num = 5;
+
+const int MAX = 4;
+const int LOOP_NUMS = 1;
+
+int buf[MAX]{};
 int fill = 0;
 int use = 0;
 int cnt = 0;
 
 void put(int val) {
     buf[fill] = val;
-    fill = (fill + 1) % MAX;
+    fill = (fill + 1) % MAX; // 循环向缓冲区中加入元素
     ++cnt;
 }
 
 int get() {
     int tmp = buf[use];
-    use = (use + 1) % MAX;
+    use = (use + 1) % MAX; // 循环从缓冲区中取出元素
     --cnt;
     return tmp;
 }
@@ -91,22 +93,27 @@ pthread_cond_t full = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *producer(void *arg) {
-    int loops = LOOP_NUMS;
-    for (int i = 0; i < loops; ++i) {
+    for (int i = 0; i < LOOP_NUMS; ++i) {
         pthread_mutex_lock(&mutex);
         while (cnt == MAX) // 满了, 等待变空
             pthread_cond_wait(&empty, &mutex);
         put(i);
-        printf("%d put \n", i);
-        pthread_cond_signal(&full);
+        printf("%d put producer \n", i);
+        pthread_cond_signal(&full); // 发送满了的信号
         pthread_mutex_unlock(&mutex);
     }
-    for (int i = 0; i < 2; ++i) { // 消费者数量
+    for (int i = 0; i < consumer_num; ++i) { // 消费者数量
         pthread_mutex_lock(&mutex);
         while (cnt == MAX) // 满了, 等待变空
             pthread_cond_wait(&empty, &mutex);
-        put(-1);
-        printf("%d put \n", i);
+        // 通过锁来实现这种同步更普适, 因为用-1
+        // 标记的方式没办法处理多生产者的情况.
+        put(-1); // 标记消费者, 消费的对应的生产出的,
+                 // 一一对应使得消费者之间不会互相争抢.
+        // 如果生产出的比较少, 此时也执行标记,
+        // (条件变量不会等待, 程序继续走到放置-1 位置)
+        // 这样不会出现消费者一直忙等生产者生产出数据的情况, 使程序正常退出.
+        printf("%d put -1 for consumer \n", i);
         pthread_cond_signal(&full);
         pthread_mutex_unlock(&mutex);
     }
@@ -115,12 +122,12 @@ void *producer(void *arg) {
 
 void *consumer(void *arg) {
     int tmp = 0;
-    while (tmp != -1) {
+    while (tmp != -1) { // 遇到了-1, 消费者退出
         pthread_mutex_lock(&mutex);
         while (cnt == 0) // 空了, 等待变满
             pthread_cond_wait(&full, &mutex);
-        tmp = get();
-        usleep(30000);
+        tmp = get(); //-1 设置为数据边界
+        // usleep(3'000); // 3ms
         printf("%d gotten \n", tmp);
         pthread_cond_signal(&empty);
         pthread_mutex_unlock(&mutex);
@@ -130,16 +137,23 @@ void *consumer(void *arg) {
 
 } // namespace version_final
 
+
 void t2() {
     using namespace version_final;
-    pthread_t tid1, tid2, tid3;
-    pthread_create(&tid1, NULL, producer, NULL);
-    pthread_create(&tid2, NULL, consumer, NULL);
-    pthread_create(&tid3, NULL, consumer, NULL);
-    pthread_join(tid1, NULL);
-    pthread_join(tid2, NULL);
-    pthread_join(tid3, NULL);
-    // 1生产者2 消费者还是会忙等
+    pthread_t ps[producer_num], cs[consumer_num];
+    for (int i{}; i < producer_num; ++i) {
+        pthread_create(&ps[i], NULL, producer, NULL);
+    }
+    for (int i{}; i < consumer_num; ++i) {
+        pthread_create(&cs[i], NULL, consumer, NULL);
+    }
+    // 必须先创建再 join, 否则生产者会忙等
+    for (int i{}; i < producer_num; ++i) {
+        pthread_join(ps[i], NULL);
+    }
+    for (int i{}; i < consumer_num; ++i) {
+        pthread_join(cs[i], NULL);
+    }
 }
 
 int main(int argc, char *argv[]) {
